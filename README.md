@@ -15,7 +15,7 @@ Pipenv: Dependency management tool for Python projects.
 # Getting Started
 Clone the repository:
 
-`git clone https://github.com/yourusername/concert-band-management.git`
+`git@github.com:moemeylane/week3codechallenge-concerts.git`
 cd `week3codechallenge-concerts`
 Install dependencies using Pipenv:
 
