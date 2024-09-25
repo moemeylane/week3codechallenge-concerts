@@ -1,30 +1,46 @@
+import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base, Band, Concert
+from models import Base, Band, Venue, Concert
 
-# Create an SQLite in-memory database for testing
-engine = create_engine('sqlite:///test.db')
-Base.metadata.create_all(engine)
+class TestConcertDatabase(unittest.TestCase):
 
-Session = sessionmaker(bind=engine)
-session = Session()
+    def setUp(self):
+        # Setup an in-memory database for testing
+        self.engine = create_engine('sqlite:///:memory:')
+        Base.metadata.create_all(self.engine)
+        self.Session = sessionmaker(bind=self.engine)
+        self.session = self.Session()
 
-# Create a new Band
-band1 = Band(name='The Rockers', hometown='New York')
-session.add(band1)
-session.commit()
+        # Create a test band and venue
+        self.band = Band(name='The Rockers', hometown='New York')
+        self.venue = Venue(title='Madison Square Garden', city='New York')
+        self.session.add(self.band)
+        self.session.add(self.venue)
+        self.session.commit()
 
-# Create new Concert associated with the Band
-concert1 = Concert(name='Rock Fest', date='2024-10-01', band_id=band1.id)
-session.add(concert1)
-session.commit()
+    def tearDown(self):
+        self.session.close()
 
-# Query the data to verify the relationships
-retrieved_band = session.query(Band).filter_by(name='The Rockers').first()
-retrieved_concert = session.query(Concert).filter_by(name='Rock Fest').first()
+    def test_create_concert(self):
+        # Create a concert linked to the band and venue
+        concert = Concert(name='Rock Fest', date='2024-10-01', band_id=self.band.id, venue_id=self.venue.id)
+        self.session.add(concert)
+        self.session.commit()
 
-print(f"Band: {retrieved_band.name}, Hometown: {retrieved_band.hometown}")
-print(f"Concert: {retrieved_concert.name}, Date: {retrieved_concert.date}, Band ID: {retrieved_concert.band_id}")
+        # Retrieve and assert the concert and its relationships
+        retrieved_concert = self.session.query(Concert).filter_by(name='Rock Fest').first()
+        self.assertIsNotNone(retrieved_concert)
+        self.assertEqual(retrieved_concert.band.name, 'The Rockers')
+        self.assertEqual(retrieved_concert.venue.title, 'Madison Square Garden')
 
-# Close the session
-session.close()
+    def test_retrieve_band(self):
+        retrieved_band = self.session.query(Band).filter_by(name='The Rockers').first()
+        self.assertEqual(retrieved_band.hometown, 'New York')
+
+    def test_retrieve_venue(self):
+        retrieved_venue = self.session.query(Venue).filter_by(title='Madison Square Garden').first()
+        self.assertEqual(retrieved_venue.city, 'New York')
+
+if __name__ == '__main__':
+    unittest.main()
